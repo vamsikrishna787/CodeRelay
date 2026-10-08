@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.coderelay/
+*.tgz
+*.log
+.env
+.env.*

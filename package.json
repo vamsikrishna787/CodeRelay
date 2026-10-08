@@ -1,0 +1,60 @@
+{
+  "name": "coderelay",
+  "version": "0.1.0",
+  "description": "Long-running, resumable multi-agent coding sessions for GitHub Copilot and any LLM — with an on-demand agent orchestrator, cost metrics and risk metrics for every agent invocation.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "coderelay": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "test": "npm run build && node --test \"test/*.test.mjs\"",
+    "prepublishOnly": "npm run clean && npm test"
+  },
+  "keywords": [
+    "copilot",
+    "github-copilot",
+    "agents",
+    "multi-agent",
+    "orchestrator",
+    "llm",
+    "mcp",
+    "long-running",
+    "session",
+    "cost-tracking",
+    "risk",
+    "ai"
+  ],
+  "author": "Vamsi Krishna",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vamsikrishna787/CodeRelay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vamsikrishna787/CodeRelay/issues"
+  },
+  "homepage": "https://github.com/vamsikrishna787/CodeRelay#readme",
+  "engines": {
+    "node": ">=20.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
+  }
+}
