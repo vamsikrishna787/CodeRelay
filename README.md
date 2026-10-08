@@ -12,7 +12,7 @@ CodeRelay brings Claude Code–style workflows to Copilot:
 - No runtime dependencies. Node ≥ 20.3.
 
 ```bash
-npm install coderelay
+npm install @opensuperlab/coderelay
 ```
 
 ---
@@ -20,15 +20,15 @@ npm install coderelay
 ## Quick start (CLI)
 
 ```bash
-npx coderelay init                      # writes coderelay.config.json + .vscode/mcp.json
+npx @opensuperlab/coderelay init                      # writes coderelay.config.json + .vscode/mcp.json
 export GITHUB_TOKEN=...                 # GitHub token with models:read (GitHub Models)
-npx coderelay run "Add rate limiting to the REST API"
+npx @opensuperlab/coderelay run "Add rate limiting to the REST API"
 ```
 
 Try it offline with the mock provider:
 
 ```bash
-npx coderelay run "Add a /health endpoint" --mock
+npx @opensuperlab/coderelay run "Add a /health endpoint" --mock
 ```
 
 ```
@@ -68,7 +68,7 @@ Flags: `--mock`, `--config <file>`, `--concurrency <n>`, `--budget <usd>`, `--qu
 ```json
 {
   "servers": {
-    "coderelay": { "type": "stdio", "command": "npx", "args": ["-y", "coderelay", "mcp"], "env": { "GITHUB_TOKEN": "${env:GITHUB_TOKEN}" } }
+    "coderelay": { "type": "stdio", "command": "npx", "args": ["-y", "@opensuperlab/coderelay", "mcp"], "env": { "GITHUB_TOKEN": "${env:GITHUB_TOKEN}" } }
   }
 }
 ```
@@ -93,7 +93,7 @@ Tip: add this to `.github/copilot-instructions.md`: *"At the start of each chat 
 ## Library usage
 
 ```ts
-import { Orchestrator, githubModelsProvider, createWorkspaceTools, FileSessionStore } from 'coderelay';
+import { Orchestrator, githubModelsProvider, createWorkspaceTools, FileSessionStore } from '@opensuperlab/coderelay';
 
 const orchestrator = new Orchestrator({
   provider: githubModelsProvider(),              // uses GITHUB_TOKEN
@@ -129,7 +129,7 @@ await orchestrator.resume(result.sessionId);
 
 ```ts
 import * as vscode from 'vscode';
-import { Orchestrator, VSCodeLMProvider } from 'coderelay';
+import { Orchestrator, VSCodeLMProvider } from '@opensuperlab/coderelay';
 
 const [model] = await vscode.lm.selectChatModels({ vendor: 'copilot', family: 'gpt-4.1' });
 const orchestrator = new Orchestrator({
@@ -143,7 +143,7 @@ See [`examples/`](examples) for a complete chat participant.
 ### Custom agents and tools
 
 ```ts
-import { defaultAgents, defineTool } from 'coderelay';
+import { defaultAgents, defineTool } from '@opensuperlab/coderelay';
 
 const agents = [
   ...defaultAgents,

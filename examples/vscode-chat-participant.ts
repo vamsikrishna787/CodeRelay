@@ -2,7 +2,7 @@
 // multi-agent team on Copilot models and streams progress, cost and risk into chat.
 // package.json needs: "contributes": { "chatParticipants": [{ "id": "coderelay.relay", "name": "relay", "isSticky": true }] }
 import * as vscode from 'vscode';
-import { createWorkspaceTools, FileSessionStore, formatReport, Orchestrator, VSCodeLMProvider } from 'coderelay';
+import { createWorkspaceTools, FileSessionStore, formatReport, Orchestrator, VSCodeLMProvider } from '@opensuperlab/coderelay';
 
 export function activate(context: vscode.ExtensionContext) {
   const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();

@@ -107,7 +107,7 @@ async function main(): Promise<number> {
       }
       const mcpPath = path.join('.vscode', 'mcp.json');
       const mcp = existsSync(mcpPath) ? (JSON.parse(readFileSync(mcpPath, 'utf8')) as { servers?: Record<string, unknown> }) : {};
-      mcp.servers = { ...mcp.servers, coderelay: { type: 'stdio', command: 'npx', args: ['-y', 'coderelay', 'mcp'], env: { GITHUB_TOKEN: '${env:GITHUB_TOKEN}' } } };
+      mcp.servers = { ...mcp.servers, coderelay: { type: 'stdio', command: 'npx', args: ['-y', '@opensuperlab/coderelay', 'mcp'], env: { GITHUB_TOKEN: '${env:GITHUB_TOKEN}' } } };
       mkdirSync('.vscode', { recursive: true });
       writeFileSync(mcpPath, `${JSON.stringify(mcp, null, 2)}\n`);
       process.stderr.write(`registered MCP server in ${mcpPath} (Copilot agent mode)\n`);

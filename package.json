@@ -1,5 +1,5 @@
 {
-  "name": "coderelay",
+  "name": "@opensuperlab/coderelay",
   "version": "0.1.0",
   "description": "Long-running, resumable multi-agent coding sessions for GitHub Copilot and any LLM — with an on-demand agent orchestrator, cost metrics and risk metrics for every agent invocation.",
   "type": "module",
@@ -56,5 +56,8 @@
   "devDependencies": {
     "@types/node": "^20.19.43",
     "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
