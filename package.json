@@ -1,6 +1,6 @@
 {
   "name": "@opensuperlab/coderelay",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Install it and GitHub Copilot works as an orchestrator: every request becomes goal → plan → your approval → specialist agents implement → tests verify (auto-retry up to 5x). Long-running session memory plus cost and risk reports. No MCP, no config.",
   "type": "module",
   "main": "./dist/index.js",

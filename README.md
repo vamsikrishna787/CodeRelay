@@ -3,95 +3,170 @@
 [![npm](https://img.shields.io/npm/v/@opensuperlab/coderelay.svg)](https://www.npmjs.com/package/@opensuperlab/coderelay)
 [![license](https://img.shields.io/npm/l/@opensuperlab/coderelay.svg)](LICENSE)
 
-**Install it once. GitHub Copilot then works like a team lead: it sets a goal, plans the work, asks for your OK, spawns specialist agents to build it, tests it, and keeps trying until the goal is reached. It also keeps a cost report and a risk report.**
+**Make GitHub Copilot plan first, ask you, then build and test your code, step by step.**
 
-No MCP servers. No configuration. No API keys.
+---
 
-## Install
+## The problem
 
-In your project folder:
+When you ask GitHub Copilot to build something, it usually starts writing code right away. It doesn't:
+
+- check that it understood you,
+- show you a plan first,
+- test that the result really works,
+- remember what it did yesterday,
+- tell you what it cost or whether it did something risky.
+
+## The solution
+
+Install CodeRelay and Copilot will handle **every request** like this:
+
+| Step | What Copilot does |
+| :---: | --- |
+| 1 | **Writes down the goal** and how to check it's done |
+| 2 | **Makes a plan** |
+| 3 | **Asks you** questions, then *"Shall I implement this plan?"* and **waits for your yes** |
+| 4 | **Builds it** using helper agents (a designer, a coder, a tester, a reviewer) |
+| 5 | **Tests it** to check the goal is really reached |
+| 6 | **Tries again** if something is still broken, up to 5 times |
+| 7 | **Tells you** the result, the cost, and any risks |
+
+---
+
+## Setup (2 minutes)
+
+**You need:** VS Code, the GitHub Copilot extension, and Node.js 20 or newer.
+
+**1. Open a terminal in your project folder and run:**
 
 ```bash
 npm install --save-dev @opensuperlab/coderelay
 ```
 
-That's it. Open **Copilot Chat** in VS Code (Agent mode) and ask for what you want.
+**2. Reload VS Code.** Press `Ctrl+Shift+P` (`Cmd+Shift+P` on Mac) and run **Developer: Reload Window**.
 
-> If your package manager skips install scripts (pnpm, `--ignore-scripts`), run `npx coderelay init` once.
+**3. Open Copilot Chat** and set the mode to **Agent**. The mode picker is at the bottom of the chat box.
 
-## What happens when you ask Copilot something
+You're done. There are no accounts, API keys or tokens to set up.
 
-```
- you ask ─► 1. GOAL      Copilot restates it as a goal + success criteria
-            2. PLAN      splits it into tasks for only the agents it needs
-            3. ASK       shows you the plan, asks about missing info:
-                         "Shall I implement this plan?"   ◄── waits for you
-            4. BUILD     spawns agents: Architect · Coder · Tester · Reviewer …
-            5. VERIFY    Verifier runs the build/tests, checks every criterion
-            6. RETRY     not reached? fixes and re-verifies (up to 5 attempts)
-            7. REPORT    result + cost + risk
-```
+> **Didn't work?** Some setups skip the automatic step (for example pnpm). Run `npx coderelay init` once to finish setup.
 
-Example:
+---
 
-> **You:** add rate limiting to the login endpoint
+## How to use it
+
+Just ask Copilot normally:
+
+> **You:** Add a dark mode toggle to the settings page
+
+Copilot answers with a goal and a plan:
+
+> **Goal:** Users can switch between light and dark mode on the settings page.
 >
-> **Copilot:** **Goal:** Limit login attempts per IP.
-> **Criteria:** ① 6th attempt within a minute gets HTTP 429 ② normal logins unaffected ③ tests pass
-> **Plan:** t1 Coder (implement middleware) → t2 Tester (add tests) → t3 Verifier
-> Should the limit be 5/min, and is Redis available or in-memory OK? **Shall I implement this plan?**
+> **Done when:**
+> 1. A toggle appears on the settings page
+> 2. Clicking it switches the colors
+> 3. The choice is remembered after a page refresh
+> 4. All tests pass
 >
-> **You:** 5/min, in-memory, go
+> **Plan:**
+> - Coder: add the toggle and dark styles
+> - Tester: write tests for the toggle
+> - Verifier: run the tests and check everything above
 >
-> **Copilot:** *spawns Coder… Tester… Verifier: 1 test failing → attempt 2: fix → Verifier: all criteria PASS*
-> ✅ Goal achieved on attempt 2/5 · 4 agent runs · ~2 premium requests · risk: low
+> **Question:** Should dark mode follow the computer's system setting by default?
+> **Shall I implement this plan?**
 
-You can also pick **Orchestrator** in the Copilot agent dropdown to make it explicit, but Copilot follows the workflow either way.
+Reply with your answer, for example:
 
-## Long-running sessions
+> **You:** Yes, follow the system setting. Go ahead.
 
-Copilot keeps its memory in **`.coderelay/SESSION.md`**: the current goal, the plan with progress, verification results, and the exact next step. Start a new chat tomorrow and just say *"continue"*; Copilot reads the file and picks up where it left off. Each new request becomes the next goal in the same session.
+Copilot then builds, tests and fixes the feature on its own, and finishes with:
 
-## Reports
+> ✅ **Goal reached** (attempt 2 of 5)
+> The first test run failed because the choice wasn't saved; fixed and re-tested.
+> Cost: about 3 premium requests (~$0.12) · Risk: low
 
-**`.coderelay/REPORT.md`** is kept up to date automatically:
+**Nothing gets built until you say yes.**
 
-- **Cost**: agent runs, Copilot premium requests and estimated $, broken down per goal and per agent, with a budget check. Copilot stops and asks you if the budget is reached (default 300 premium requests).
-- **Risk**: every command Copilot wants to run is checked first. Dangerous ones are blocked: `rm -rf`, force-push, `DROP TABLE`, `curl … | sh`, deploys and publishes. Every finished task's changed files are scanned for leaked secrets, disabled TLS checks, SQL/shell injection and similar. You get a risk index plus recommendations.
+---
 
-Ask Copilot *"show the CodeRelay report"* at any time.
+## Picking up where you left off
 
-## What gets added to your project
+Copilot keeps notes in the file **`.coderelay/SESSION.md`**: what it's working on, what's done, and what's next.
 
-| File | Why |
+Close VS Code, come back tomorrow, open a new chat and type:
+
+> **You:** continue
+
+Copilot reads its notes and carries on.
+
+---
+
+## Cost and safety reports
+
+Open **`.coderelay/REPORT.md`** any time, or ask Copilot *"show the CodeRelay report"*.
+
+**💰 Cost:** how much Copilot usage each request took.
+- Copilot counts usage in **premium requests**. Your plan includes a monthly amount, and extra ones cost about $0.04 each.
+- CodeRelay estimates how many premium requests each request used.
+- If the budget runs out (default: 300), Copilot stops and asks you before continuing.
+
+**🛡️ Safety:** what Copilot did that could be risky.
+- Before running dangerous terminal commands, Copilot checks them first.
+  - Commands like deleting folders (`rm -rf`), force-pushing to git, or deleting database tables are **blocked**.
+  - Borderline commands are **shown to you first**.
+- After each step, the changed files are scanned for mistakes like **passwords or API keys left in the code**.
+
+---
+
+## Files it adds to your project
+
+| File | What it is |
 | --- | --- |
-| `.github/copilot-instructions.md` | The workflow rules (added as a section; your existing content is kept) |
-| `.github/agents/coderelay-*.agent.md` | Orchestrator plus 6 specialists: Architect, Researcher, Coder, Tester, Reviewer, Verifier |
-| `.vscode/settings.json` | Lets Copilot run `npx coderelay …` without asking you each time |
-| `.coderelay/` | Session memory, reports and settings |
+| `.github/copilot-instructions.md` | The rules Copilot follows. Your existing text in this file is kept |
+| `.github/agents/` | The helper agents: Orchestrator, Architect, Researcher, Coder, Tester, Reviewer, Verifier |
+| `.vscode/settings.json` | Lets Copilot update its notes without asking you every time |
+| `.coderelay/` | Copilot's notes (`SESSION.md`), reports (`REPORT.md`) and settings (`config.json`) |
 
-Commit these files so your whole team gets the same workflow. Upgrading the package refreshes them, but any agent file you've edited yourself is left alone.
+Commit these files to git so your whole team gets the same behavior.
 
-## Settings (optional)
+---
 
-`.coderelay/config.json`:
+## Common questions
+
+**Do I have to type special commands?**
+No. Talk to Copilot normally. Copilot runs CodeRelay's commands itself; you'll see them in the chat.
+
+**Does it need a GitHub token or API key?**
+No. It uses the Copilot you already have.
+
+**Can I skip the plan for small things?**
+Yes. Quick questions and one-line fixes are answered directly, without the full process.
+
+**Can I change the number of retries or the budget?**
+Yes. Edit `.coderelay/config.json`:
 
 ```json
 {
   "maxAttempts": 5,
-  "budget": { "maxPremiumRequests": 300 },
-  "models": { "gpt-4.1": 0, "gpt-4o": 0, "gpt-5-mini": 0, "default": 1 },
-  "premiumRequestUsd": 0.04,
-  "risk": { "review": 50, "block": 80 }
+  "budget": { "maxPremiumRequests": 300 }
 }
 ```
 
-`models` maps Copilot models to premium requests per run (included models are 0). Match it to your Copilot plan for accurate cost estimates.
+**Can I change how a helper agent behaves?**
+Yes. Edit its file in `.github/agents/`. CodeRelay won't overwrite a file you've changed.
 
-## Requirements
+**Copilot skipped a step. Why?**
+Copilot is an AI, so it sometimes slips. CodeRelay **blocks** the important mistakes: it won't let Copilot start building before you approve, or claim success without testing. Stronger models (chosen in Copilot's model picker) follow the steps more closely.
 
-- VS Code with GitHub Copilot (Agent mode, custom agents and subagents)
-- Node.js 20.3+
+**How do I start a fresh session?**
+Run `npx coderelay new`. The old notes are saved in `.coderelay/history/`.
+
+**I upgraded from version 0.1 and Copilot asks for a GitHub token.**
+Delete the `coderelay` entry from `.vscode/mcp.json` (or delete the file) and reload VS Code. The new version doesn't use it.
+
+---
 
 ## License
 

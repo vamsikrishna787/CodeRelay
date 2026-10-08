@@ -29,6 +29,7 @@ Run \`npx coderelay …\` commands in the terminal exactly as shown (they are au
 
 **Safety**: before any terminal command that deletes, overwrites, force-pushes, deploys, publishes, installs packages or touches credentials, run \`npx coderelay check "<command>"\`. **BLOCK**: do not run it; find a safer way or ask the user. **REVIEW**: ask the user first.
 If any \`coderelay\` command prints **BUDGET EXCEEDED**, stop and ask the user how to proceed.
+If the user asks about the report, cost, spend or risk, run \`npx coderelay report\` and summarize it. If they say "continue", follow the next step in \`.coderelay/SESSION.md\`.
 Questions and tiny one-line fixes don't need this workflow; just answer.
 ${BLOCK_END}
 `;
