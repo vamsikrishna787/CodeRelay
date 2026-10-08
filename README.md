@@ -1,35 +1,117 @@
 # CodeRelay
 
-**Long-running, resumable multi-agent coding sessions for GitHub Copilot (and any LLM), with cost and risk metrics on every agent invocation.**
+[![npm](https://img.shields.io/npm/v/@opensuperlab/coderelay.svg)](https://www.npmjs.com/package/@opensuperlab/coderelay)
+[![license](https://img.shields.io/npm/l/@opensuperlab/coderelay.svg)](LICENSE)
+![node](https://img.shields.io/node/v/@opensuperlab/coderelay.svg)
 
-CodeRelay brings Claude Code–style workflows to Copilot:
+**Give GitHub Copilot a memory, a team, and a budget.**
 
-- **Long-running sessions**: work persists to disk, survives restarts and new chats, and compacts its own context into a rolling summary so it never overflows. Every event is journaled.
-- **Orchestrator**: a planner breaks a goal into a dependency graph of tasks. Specialist agents (architect, coder, tester, reviewer, researcher…) are **deployed on demand**, only when a task needs them. Independent tasks run in parallel, and idle agents are retired.
-- **Cost metrics**: tokens, USD, Copilot premium requests, latency and failures for every invocation. You can break these down by agent, model and task. Budgets stop the run cleanly, and you can resume it later.
-- **Risk metrics**: every tool call, model output and invocation gets a 0–100 score from built-in rules (destructive commands, leaked secrets, paths outside the workspace, loops, cost spikes, error rates). Risky actions are blocked or sent to your approver.
-- **Copilot integration**: an MCP server for Copilot agent mode, a `vscode.lm` provider for VS Code extensions, and GitHub Models over HTTP.
-- No runtime dependencies. Node ≥ 20.3.
+CodeRelay adds Claude Code–style workflows to GitHub Copilot and any other LLM:
+
+| | |
+| --- | --- |
+| 🧠 **Long-running sessions** | Work is saved to disk and continues across new chats, VS Code restarts and days. Old context is compacted into a summary automatically. |
+| 🤖 **Multi-agent orchestrator** | One goal is planned into tasks. Specialist agents (architect, coder, tester, reviewer, researcher) are **deployed only when needed** and run in parallel where possible. |
+| 💰 **Cost metrics** | Tokens, USD and Copilot premium requests for every agent call, broken down by agent, model and task. Budgets pause the run, and you can resume it later. |
+| 🛡️ **Risk metrics** | Every command, file write and model output is scored 0–100. Things like `rm -rf`, force-push, `DROP TABLE` and leaked tokens are **blocked before they run**. |
+
+Works with **Copilot agent mode** (MCP), **VS Code extensions** (`vscode.lm`), **GitHub Models**, and any **OpenAI-compatible** API. No runtime dependencies. Node ≥ 20.3.
+
+---
+
+## Contents
+
+- [Install](#install)
+- [Way 1: Inside GitHub Copilot Chat (recommended)](#way-1-inside-github-copilot-chat-recommended)
+- [Way 2: From the terminal (CLI)](#way-2-from-the-terminal-cli)
+- [Way 3: In your own code (library)](#way-3-in-your-own-code-library)
+- [Configuration](#configuration-coderelayconfigjson)
+- [How it works](#how-it-works)
+- [Troubleshooting](#troubleshooting)
+
+## Install
+
+There's nothing to install globally; `npx` runs it on demand. To add it to a project:
 
 ```bash
 npm install @opensuperlab/coderelay
 ```
 
+After installing, the command is `coderelay`. Without installing, use `npx @opensuperlab/coderelay …`.
+
 ---
 
-## Quick start (CLI)
+## Way 1: Inside GitHub Copilot Chat (recommended)
+
+Copilot keeps its normal chat. CodeRelay adds tools for persistent sessions, risk checks, cost tracking and an agent team.
+
+**Step 1: Set up your project** (run in the project's root folder):
 
 ```bash
-npx @opensuperlab/coderelay init                      # writes coderelay.config.json + .vscode/mcp.json
-export GITHUB_TOKEN=...                 # GitHub token with models:read (GitHub Models)
-npx @opensuperlab/coderelay run "Add rate limiting to the REST API"
+npx @opensuperlab/coderelay init
 ```
 
-Try it offline with the mock provider:
+This creates three things:
+
+| File | Purpose |
+| --- | --- |
+| `.vscode/mcp.json` | Registers the CodeRelay MCP server with Copilot |
+| `.github/copilot-instructions.md` | Tells Copilot to resume sessions, check risky commands and log progress |
+| `coderelay.config.json` | Models, budget, risk thresholds and prices (all optional) |
+
+**Step 2: Provide a GitHub token** (only needed for the agent team, `relay_orchestrate`). Create one at https://github.com/settings/tokens with the **`models:read`** permission.
+
+```powershell
+# Windows (PowerShell): permanent, then restart VS Code
+setx GITHUB_TOKEN "github_pat_xxx"
+```
+
+```bash
+# macOS / Linux: add to ~/.zshrc or ~/.bashrc
+export GITHUB_TOKEN=github_pat_xxx
+```
+
+**Step 3: Turn it on in VS Code.** Reload the window. Open Copilot Chat, switch the mode to **Agent**, then click the 🛠️ tools icon and check that the **coderelay** tools are enabled. You can also start the server manually from `.vscode/mcp.json` by clicking **Start** above the `coderelay` entry.
+
+**Step 4: Talk to Copilot.** Example prompts:
+
+| You type | What happens |
+| --- | --- |
+| *"Start a relay session for migrating auth to OAuth."* | Creates a persistent session and returns its id |
+| *"Resume my relay session."* (in a **new chat**, even days later) | Copilot reloads the summary, task list and recent activity, and carries on |
+| *"Check if `git push --force` is safe here."* | Risk score and decision (allow, review or block) with reasons |
+| *"Use relay to orchestrate: add pagination and tests to the /users API."* | Plans tasks, deploys architect, coder, tester and reviewer agents, and returns the result with a cost and risk report |
+| *"Show relay metrics for this session."* | Tokens, USD, premium requests, cost by agent, risk index and blocked actions |
+
+<details>
+<summary>All MCP tools Copilot gets</summary>
+
+| Tool | Purpose |
+| --- | --- |
+| `relay_session_start` | Start a persistent session |
+| `relay_session_resume` | Load a session brief in a new chat (latest session if no id is given) |
+| `relay_sessions_list` | List sessions with status and cost |
+| `relay_session_log` | Record progress and decisions (auto-compacted) |
+| `relay_checkpoint` | Create a named checkpoint |
+| `relay_record_usage` | Log Copilot's own token or premium-request usage for cost metrics |
+| `relay_risk_check` | Score a command, file path or text **before** acting |
+| `relay_orchestrate` | Plan a goal and deploy the agent team |
+| `relay_resume_tasks` | Finish tasks stopped by a budget limit, an error or a restart |
+| `relay_metrics` | Cost and risk report (markdown, json or text) |
+
+</details>
+
+---
+
+## Way 2: From the terminal (CLI)
+
+**Try it offline first.** No token or cost; a built-in mock model is used:
 
 ```bash
 npx @opensuperlab/coderelay run "Add a /health endpoint" --mock
 ```
+
+You'll see the plan, the agents being deployed, and the report:
 
 ```
 plan: 4 task(s)
@@ -39,58 +121,47 @@ plan: 4 task(s)
   t4 → reviewer: Review (after t2, t3)
 + deployed architect_3f9c… — first task for this agent type
 ▶ t1 Design approach [architect]
+✔ t1 (1 turns, 0 tool calls)
 ...
 == Cost ==            invocations, tokens, $, premium requests
 == Cost by agent ==   planner / architect / coder / tester / reviewer / orchestrator
 == Risk ==            risk index, blocked actions, top risks
-== Tasks ==           per-task status, tokens, cost, max risk
-== Agent deployment == spawned instances, peak concurrency
+== Tasks ==           status, tokens, cost and max risk per task
+== Agent deployment == instances spawned, peak concurrency
+```
+
+**Real run** (needs `GITHUB_TOKEN`, see Way 1, step 2):
+
+```bash
+npx @opensuperlab/coderelay run "Add input validation to the signup form" --budget 0.50
+```
+
+**Long-running workflow:**
+
+```bash
+coderelay run "Build the billing module" --budget 2      # prints: session ses_ab12…
+coderelay run "Now add invoices" --session ses_ab12…     # same session, new round of tasks
+coderelay resume ses_ab12…                                # after Ctrl+C / budget stop / crash
+coderelay report ses_ab12… --format markdown              # cost & risk report
+coderelay brief ses_ab12…                                 # summary to paste into any chat
 ```
 
 | Command | What it does |
 | --- | --- |
-| `coderelay run "<goal>" [--session id]` | Plan and execute; `--session` adds a new round to an existing long-running session |
+| `coderelay init` | Set up a project for Copilot (see Way 1) |
+| `coderelay run "<goal>" [--session id]` | Plan and execute. `--session` continues an existing session |
 | `coderelay resume <id>` | Continue unfinished, failed or budget-stopped tasks |
 | `coderelay sessions` | List sessions with status and cost |
 | `coderelay report <id> [--format text\|markdown\|json]` | Cost and risk report |
-| `coderelay brief <id>` | Session brief to paste into a fresh chat |
-| `coderelay risk "<command>"` | Score a shell command (exit code 2 = block) |
-| `coderelay mcp` | Start the MCP server (stdio) |
+| `coderelay brief <id>` | Session summary for a fresh chat |
+| `coderelay risk "<command>"` | Score a shell command (exit code 2 means block; useful in git hooks and CI) |
+| `coderelay mcp` | Start the MCP server (stdio). Normally VS Code starts it for you |
 
-Flags: `--mock`, `--config <file>`, `--concurrency <n>`, `--budget <usd>`, `--quiet`. Press Ctrl+C to cancel cleanly; the session can be resumed afterwards.
-
----
-
-## Using it from GitHub Copilot (agent mode)
-
-`coderelay init` registers the MCP server in `.vscode/mcp.json`:
-
-```json
-{
-  "servers": {
-    "coderelay": { "type": "stdio", "command": "npx", "args": ["-y", "@opensuperlab/coderelay", "mcp"], "env": { "GITHUB_TOKEN": "${env:GITHUB_TOKEN}" } }
-  }
-}
-```
-
-Copilot then gets these tools:
-
-| Tool | Purpose |
-| --- | --- |
-| `relay_session_start` / `relay_session_resume` | Start a persistent session, or reload its brief in a **new chat** so long-running work continues |
-| `relay_session_log` | Record progress and decisions (auto-compacted) |
-| `relay_checkpoint` | Named checkpoints |
-| `relay_record_usage` | Log Copilot's own token or premium-request usage for cost metrics |
-| `relay_risk_check` | Score a command, path or text **before** acting |
-| `relay_orchestrate` / `relay_resume_tasks` | Deploy a multi-agent team for a big goal |
-| `relay_metrics` | Cost and risk report |
-| `relay_sessions_list` | All sessions |
-
-Tip: add this to `.github/copilot-instructions.md`: *"At the start of each chat call `relay_session_resume`. Before running any terminal command call `relay_risk_check`. Log important progress with `relay_session_log`."*
+Flags: `--mock`, `--config <file>`, `--concurrency <n>`, `--budget <usd>`, `--quiet`. Ctrl+C stops cleanly, and the session can be resumed.
 
 ---
 
-## Library usage
+## Way 3: In your own code (library)
 
 ```ts
 import { Orchestrator, githubModelsProvider, createWorkspaceTools, FileSessionStore } from '@opensuperlab/coderelay';
@@ -238,6 +309,19 @@ Score is 0–100 (low, medium, high, critical). By default, a score of 50 or mor
 ```
 
 Provider types: `github-models`, `openai-compatible` (`baseUrl`, `apiKeyEnv`, works with Azure OpenAI, OpenRouter, Ollama and others), and `mock`. Entries in `agents` are merged over the defaults by name.
+
+## Troubleshooting
+
+| Problem | Fix |
+| --- | --- |
+| Copilot doesn't show the coderelay tools | Make sure Chat is in **Agent** mode, reload the window, then open `.vscode/mcp.json` and click **Start** above `coderelay`. Check the output under *MCP: List Servers → coderelay → Show Output*. |
+| `githubModelsProvider requires a token` | Set `GITHUB_TOKEN` (see Way 1, step 2) and restart VS Code or your terminal. You can also add `--mock` to try it offline. |
+| `HTTP 401` / `403` from GitHub Models | The token needs the **`models:read`** permission. |
+| `HTTP 429` | Rate limit. CodeRelay retries with backoff automatically. Lower `maxConcurrency` if it keeps happening. |
+| Report shows `$0.0000` and "unpriced" | Add your models to `pricing` in `coderelay.config.json`. No prices ship with the package. |
+| Run stopped with `Budget exceeded` | Raise the budget, then run `coderelay resume <id>`. Completed tasks are not repeated. |
+| An agent's command was `BLOCKED` | This is intended. Check the reason with `coderelay report <id>`. Adjust `risk.blockThreshold`, or use an `onReview` approver in library mode. |
+| Where is my data? | `.coderelay/sessions/<id>/` in your project: `state.json` holds the current state and `events.jsonl` the full history. Add `.coderelay/` to `.gitignore`. |
 
 ## Development
 

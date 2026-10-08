@@ -28,6 +28,17 @@ Options:
   --quiet             Only print the final output
 `;
 
+const COPILOT_INSTRUCTIONS_MARKER = '<!-- coderelay -->';
+const COPILOT_INSTRUCTIONS = `${COPILOT_INSTRUCTIONS_MARKER}
+## CodeRelay (long-running sessions, cost & risk)
+
+- At the start of every chat, call \`relay_session_resume\` to load the current session's summary and tasks. If there is none, call \`relay_session_start\` with a short title.
+- Before running any terminal command that deletes, overwrites, force-pushes, deploys or touches credentials, call \`relay_risk_check\`. Do not run it if the decision is BLOCK, and ask the user first if it is REVIEW.
+- After each meaningful step (decision made, files changed, tests run), call \`relay_session_log\` with a one or two sentence summary.
+- For large multi-step goals, offer to use \`relay_orchestrate\` to run a team of specialist agents.
+- When asked about cost, spend or risk, call \`relay_metrics\`.
+`;
+
 interface Args {
   _: string[];
   flags: Record<string, string | boolean>;
@@ -111,6 +122,27 @@ async function main(): Promise<number> {
       mkdirSync('.vscode', { recursive: true });
       writeFileSync(mcpPath, `${JSON.stringify(mcp, null, 2)}\n`);
       process.stderr.write(`registered MCP server in ${mcpPath} (Copilot agent mode)\n`);
+
+      const instructionsPath = path.join('.github', 'copilot-instructions.md');
+      const existing = existsSync(instructionsPath) ? readFileSync(instructionsPath, 'utf8') : '';
+      if (existing.includes(COPILOT_INSTRUCTIONS_MARKER)) {
+        process.stderr.write(`${instructionsPath} already has CodeRelay instructions\n`);
+      } else {
+        mkdirSync('.github', { recursive: true });
+        writeFileSync(instructionsPath, `${existing}${existing && !existing.endsWith('\n') ? '\n' : ''}${existing ? '\n' : ''}${COPILOT_INSTRUCTIONS}`);
+        process.stderr.write(`${existing ? 'updated' : 'created'} ${instructionsPath}\n`);
+      }
+
+      const gitignore = existsSync('.gitignore') ? readFileSync('.gitignore', 'utf8') : undefined;
+      if (gitignore !== undefined && !/^\.coderelay\/?$/m.test(gitignore)) {
+        writeFileSync('.gitignore', `${gitignore}${gitignore.endsWith('\n') || !gitignore ? '' : '\n'}.coderelay/\n`);
+        process.stderr.write('added .coderelay/ to .gitignore\n');
+      }
+
+      process.stderr.write(
+        '\nNext: set GITHUB_TOKEN (models:read), reload VS Code, open Copilot Chat in Agent mode,\n' +
+          'and ask: "Start a relay session for <your goal>".\n',
+      );
       return 0;
     }
 

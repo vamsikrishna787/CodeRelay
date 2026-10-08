@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { createInterface } from 'node:readline';
 import path from 'node:path';
 import type { Readable, Writable } from 'node:stream';
@@ -11,7 +12,7 @@ import { Session } from '../session/session.js';
 import { FileSessionStore, type SessionStore } from '../session/store.js';
 import { newId } from '../util.js';
 
-const VERSION = '0.1.0';
+const VERSION = (createRequire(import.meta.url)('../../package.json') as { version: string }).version;
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
